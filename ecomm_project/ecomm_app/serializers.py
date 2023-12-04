@@ -36,7 +36,7 @@ class CustomDateField(serializers.Field):
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
-
+    id = serializers.IntegerField(required=True)
     class Meta:
         model = OrderItem
         fields = ['id', 'product', 'quantity']
@@ -50,7 +50,7 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ['id', 'order_number', 'customer', 'order_date', 'address', 'order_item']
-        read_only_fields = ['id']
+        # read_only_fields = ['id']
 
     def check_order_cumulative_weight(self, order_items_data):
         cumulative_weight = 0
@@ -75,7 +75,6 @@ class OrderSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Order cumulative weight must be under 150kg")
 
     def create(self, validated_data):
-        print("validated data", validated_data)
         order_items_data = validated_data.pop('order_item')
 
         self.check_order_cumulative_weight(order_items_data=order_items_data)
@@ -89,7 +88,6 @@ class OrderSerializer(serializers.ModelSerializer):
 
         order = Order.objects.create(**validated_data)
         for order_item_data in order_items_data:
-            print("order item data", order_item_data)
             OrderItem.objects.create(**order_item_data, order=order)
         return order
 
@@ -109,13 +107,12 @@ class OrderSerializer(serializers.ModelSerializer):
         for order_item_data in order_items_data:
             order_item_id = order_item_data.get('id')
             product_data = order_item_data.get('product', {})
-            # product_id = product_data.get('id')
 
             if order_item_id:
                 # Update existing OrderItem
                 existing_item = existing_order_items.pop(order_item_id, None)
                 if existing_item:
-                    existing_item['name'] = product_data['name']
+                    existing_item['product_id'] = order_item_data['product']
                     existing_item['quantity'] = order_item_data['quantity']
                     OrderItem.objects.filter(id=order_item_id).update(**existing_item)
             else:
@@ -127,7 +124,6 @@ class OrderSerializer(serializers.ModelSerializer):
         OrderItem.objects.filter(id__in=existing_order_items.keys()).delete()
 
         return instance
-
 
     def validate_order_date(self, value):
         if value < timezone.now().date():
