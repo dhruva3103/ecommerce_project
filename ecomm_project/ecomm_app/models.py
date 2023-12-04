@@ -31,7 +31,6 @@ def generate_order_number():
 
 
 class Order(models.Model):
-    # order_number = models.CharField(max_length=10, unique=True, default=generate_order_number(), editable=False)
     order_number = models.CharField(max_length=10, unique=True, blank=True, null=True)
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
     order_date = models.DateField(default=timezone.now)
@@ -45,4 +44,7 @@ class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='order_item')
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(validators=[MinValueValidator(1)])
+
+    def __str__(self):
+        return f"{self.order.order_number} - {self.product.name}"
 
