@@ -36,11 +36,11 @@ class CustomDateField(serializers.Field):
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
-    id = serializers.IntegerField(required=True)
+    # id = serializers.ReadOnlyField()
     class Meta:
         model = OrderItem
         fields = ['id', 'product', 'quantity']
-        # read_only = True
+        read_only_fields = ['id']
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -50,7 +50,7 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ['id', 'order_number', 'customer', 'order_date', 'address', 'order_item']
-        # read_only_fields = ['id']
+        read_only_fields = ['id', 'order_number']
 
     def check_order_cumulative_weight(self, order_items_data):
         cumulative_weight = 0
@@ -87,11 +87,13 @@ class OrderSerializer(serializers.ModelSerializer):
             validated_data['order_number'] = "ORD" + str(last_pk + 1).zfill(5)
 
         order = Order.objects.create(**validated_data)
+
         for order_item_data in order_items_data:
             OrderItem.objects.create(**order_item_data, order=order)
         return order
 
     def update(self, instance, validated_data):
+        print(self.initial_data)
         order_items_data = validated_data.pop('order_item')
         self.check_order_cumulative_weight(order_items_data=order_items_data)
 
@@ -102,10 +104,13 @@ class OrderSerializer(serializers.ModelSerializer):
 
         # Track the existing OrderItem instances
         existing_order_items = {item['id']: item for item in instance.order_item.values()}
-
+        # breakpoint()
         # Update or create OrderItem instances
+        order_items_data = self.initial_data.pop('order_item')
+        print("order items data", order_items_data)
         for order_item_data in order_items_data:
             order_item_id = order_item_data.get('id')
+            print("order item id", order_item_id)
             product_data = order_item_data.get('product', {})
 
             if order_item_id:
